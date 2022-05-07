@@ -1,0 +1,20 @@
+{% extends 'base.html'%}
+
+{% block title%}
+    Otp Login Page
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+    <h1 class="h3 mb-3 font-weight-normal">
+        Enter The 4 Digit OTP Sent To Your Email
+    </h1>
+    <br>
+    <form method="POST" class="form-signin" style="color:white">
+        {{ form.hidden_tag() }}
+        {{ form.otp(class="form-control mb-1", placeholder="Otp") }}
+        <br>
+        {{ form.submit(class="btn btn-lg btn-block btn-success") }}
+    </form>
+</div>
+{% endblock %}
