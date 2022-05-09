@@ -6,12 +6,16 @@ from datetime import datetime
 import requests
 
 
+
+# Api route urls
+
 server_ip_user = "http://127.0.0.1:8000/users"
 server_ip_user_otp = "http://127.0.0.1:8000/users/otp"
 server_ip_login = "http://127.0.0.1:8000/login"
 server_ip_login_otp = "http://127.0.0.1:8000/login/otp"
 
 
+# home page route
 @app.route('/')
 @app.route('/home')
 def home_page():
@@ -19,10 +23,17 @@ def home_page():
 
 
 
+# Login page Route
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
+
+    '''
+        This route will take input from the login form and validate it.
+    '''
+
     form = Login_form()
 
+    # If the input data is in correct form
     if form.validate_on_submit():
         data = {
             "username": form.username.data,
@@ -30,8 +41,10 @@ def login_page():
         }
 
 
+        # Sending request to the server to check the credentials
         server_return = requests.post(server_ip_login, json=data)
 
+        # If invalid details are there is the credentials
         if server_return.status_code == 404:
 
             if server_return.json()['detail'] == "Invalid username":
@@ -39,6 +52,8 @@ def login_page():
 
             if server_return.json()['detail'] == "Invalid password":
                 flash(f'Ivalid Password', category='danger')
+
+        # Else put the data in the session dictionary so that login_otp_page route can use the data.    
         else:
             session['dict'] = server_return.json()
             return redirect(url_for('login_otp_page'))
@@ -50,8 +65,11 @@ def login_page():
 def login_otp_page():
     form = Otp_Login_form()
 
+
+    # If the input data is in correct form
     if form.validate_on_submit():
 
+        # Here we are using session dictionary to use the data from the login_page route
         payload = session['dict']
         data = {
             "username": payload["username"],
@@ -60,6 +78,7 @@ def login_otp_page():
             "input_otp": form.otp.data
         }
 
+        # Sending request to the api to check the otp
         server_return = requests.post(server_ip_login_otp, json=data)
 
         if server_return.status_code == 404:
@@ -76,6 +95,7 @@ def login_otp_page():
 def register_page():
     form = Register_form()
 
+    # If the form data is in correct format
     if form.validate_on_submit():
 
         data = {
@@ -83,19 +103,24 @@ def register_page():
         "email": form.email_address.data,
         "password": form.password1.data
         }
+
+        # Sending the api request with the inputted data
         server_return = requests.post(server_ip_user, json=data)
 
+        # If there is some problem with user credentials
         if server_return.status_code == 208:
             if server_return.json()['detail'] == "email already exists":
                 flash(f'User with Email Already exists', category='danger')
 
             if server_return.json()['detail'] == "username already exists":
                 flash(f'User with Username already exists', category='danger')
-
+        
+        # Else add data to session dictionary for its use in otp page.
         else:
             session['dict'] = server_return.json()
             return redirect(url_for('register_otp_page'))
 
+    # If there are errors in some validations.
     if form.errors != {}:
         for err_msg in form.errors.values():
             flash(f'There was an error creating your account: {err_msg}', category='danger')
@@ -108,10 +133,11 @@ def register_page():
 def register_otp_page():
     form = Otp_Register_form()
 
+    # Data from the session dictionary
     payload = session['dict']
 
+    # If form data is in correct format
     if form.validate_on_submit():
-        print("working")
         data = {
             'user': {
                 'username': payload['user']['username'],
@@ -121,9 +147,11 @@ def register_otp_page():
             'otp': payload['otp'],
             'input_otp': form.otp.data
         }
-
+        
+        # Send the request to the api to check the otp
         server_return = requests.post(server_ip_user_otp, json=data)
 
+        # If the otp is wrong
         if server_return.status_code == 404:
             flash(f'Wrong Otp', category='danger')
 
