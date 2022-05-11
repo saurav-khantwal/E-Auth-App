@@ -100,7 +100,6 @@ def register_page():
     # If the form data is in correct format
     if form.validate_on_submit():
 
-        # form.image.data.save(f"{form.username.data}.png")
 
         data = {
         "username": form.username.data,
