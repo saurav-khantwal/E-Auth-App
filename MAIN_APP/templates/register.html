@@ -1,7 +1,7 @@
 {% extends 'base.html'%}
 
 {% block title%}
-    login page
+    Register page
 {% endblock %}
 
 {% block content %}
@@ -10,8 +10,8 @@
         Create your account
     </h1>
     <br>
-    <form method="POST" class="form-register" style="color:white">
-        {{ form.hidden_tag() }}
+    <form method="POST" class="form-register" style="color:white" enctype="multipart/form-data">
+        {{ form.csrf_token }}
 
         {{ form.username.label() }}
         {{ form.username(class="form-control mb-1", placeholder="Username") }}
@@ -24,6 +24,8 @@
 
         {{ form.password2.label() }}
         {{ form.password2(class="form-control", placeholder="Confirm Password") }}
+
+
         <br>
         {{ form.submit(class="btn btn-lg btn-center btn-success") }}
         <div class=" mb-3 mt-2  float-right">

@@ -4,6 +4,7 @@ from flask import render_template, url_for, flash, redirect, request, session
 from MAIN_APP.forms import Register_form, Login_form, Otp_Register_form, Otp_Login_form
 from datetime import datetime
 import requests
+import base64
 
 
 
@@ -91,12 +92,15 @@ def login_otp_page():
     return render_template('otp_login.html', form = form)
 
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register_page():
     form = Register_form()
 
     # If the form data is in correct format
     if form.validate_on_submit():
+
+        # form.image.data.save(f"{form.username.data}.png")
 
         data = {
         "username": form.username.data,
