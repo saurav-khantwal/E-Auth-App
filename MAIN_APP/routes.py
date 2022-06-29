@@ -1,4 +1,5 @@
 from crypt import methods
+from email.mime import message
 from MAIN_APP import app
 from flask import render_template, url_for, flash, redirect, request, session
 from MAIN_APP.forms import Register_form, Login_form, Otp_Register_form, Otp_Login_form
@@ -21,7 +22,6 @@ server_ip_login_otp = "http://127.0.0.1:8000/login/otp"
 @app.route('/home')
 def home_page():
     return render_template('home.html')
-
 
 
 # Login page Route
@@ -62,6 +62,9 @@ def login_page():
     return render_template('login.html', form = form)
 
 
+
+
+
 @app.route('/login/otp', methods=['GET', 'POST'])
 def login_otp_page():
     form = Otp_Login_form()
@@ -74,9 +77,11 @@ def login_otp_page():
         payload = session['dict']
         data = {
             "username": payload["username"],
+            "user_id": payload['user_id'],
             "password": payload['password'],
             "otp": payload['otp'],
             "input_otp": form.otp.data
+            
         }
 
         # Sending request to the api to check the otp
@@ -86,10 +91,14 @@ def login_otp_page():
             flash('Wrong OTP', category='danger')
 
         else:
+            session['access_token'] = server_return.json()['access_token']
             flash('Successfully logged In', category='success')
+            session['logged_in'] = True
+            session['data'] = data
             return redirect(url_for('home_page'))
 
     return render_template('otp_login.html', form = form)
+
 
 
 
@@ -129,6 +138,7 @@ def register_page():
             flash(f'There was an error creating your account: {err_msg}', category='danger')
 
     return render_template('register.html', form = form)
+
 
 
 
