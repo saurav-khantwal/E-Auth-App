@@ -1,7 +1,7 @@
 from crypt import methods
 from email.mime import message
 from MAIN_APP import app
-from flask import render_template, url_for, flash, redirect, request, session
+from flask import render_template, url_for, flash, redirect, request, session, g
 from MAIN_APP.forms import Register_form, Login_form, Otp_Register_form, Otp_Login_form
 from datetime import datetime
 import requests
@@ -17,14 +17,26 @@ server_ip_login = "http://127.0.0.1:8000/login"
 server_ip_login_otp = "http://127.0.0.1:8000/login/otp"
 
 
+# before request
+@app.before_request
+def before_request():
+    g.user = None
+    if "user_id" in session:
+        g.user = session['data']
+
+
 # home page route
-@app.route('/')
 @app.route('/home')
 def home_page():
+    if not g.user:
+        flash("You need to login before accessing this page", 'info')
+        return redirect(url_for('login_page'))
     return render_template('home.html')
 
 
+
 # Login page Route
+@app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
 
@@ -35,29 +47,31 @@ def login_page():
     form = Login_form()
 
     # If the input data is in correct form
-    if form.validate_on_submit():
-        data = {
-            "username": form.username.data,
-            "password": form.password.data
-        }
+    if request.method == "POST":
+        session.pop('user_id', None)
+        if form.validate_on_submit():
+            data = {
+                "username": form.username.data,
+                "password": form.password.data
+            }
 
 
-        # Sending request to the server to check the credentials
-        server_return = requests.post(server_ip_login, json=data)
+            # Sending request to the server to check the credentials
+            server_return = requests.post(server_ip_login, json=data)
 
-        # If invalid details are there is the credentials
-        if server_return.status_code == 404:
+            # If invalid details are there is the credentials
+            if server_return.status_code == 404:
 
-            if server_return.json()['detail'] == "Invalid username":
-                flash(f'Invalid Username', category='danger')
+                if server_return.json()['detail'] == "Invalid username":
+                    flash(f'Invalid Username', category='danger')
 
-            if server_return.json()['detail'] == "Invalid password":
-                flash(f'Ivalid Password', category='danger')
+                if server_return.json()['detail'] == "Invalid password":
+                    flash(f'Ivalid Password', category='danger')
 
         # Else put the data in the session dictionary so that login_otp_page route can use the data.    
-        else:
-            session['dict'] = server_return.json()
-            return redirect(url_for('login_otp_page'))
+            else:   
+                session['dict'] = server_return.json()
+                return redirect(url_for('login_otp_page'))
 
     return render_template('login.html', form = form)
 
@@ -75,31 +89,37 @@ def login_otp_page():
 
         # Here we are using session dictionary to use the data from the login_page route
         payload = session['dict']
-        data = {
-            "username": payload["username"],
-            "user_id": payload['user_id'],
-            "password": payload['password'],
-            "otp": payload['otp'],
-            "input_otp": form.otp.data
+        payload['input_otp'] = form.otp.data
+        # data = {
+        #     "username": payload["username"],
+        #     "user_id": payload['user_id'],
+        #     "password": payload['password'],
+        #     "otp": payload['otp'],
+        #     "input_otp": form.otp.data
             
-        }
+        # }
 
         # Sending request to the api to check the otp
-        server_return = requests.post(server_ip_login_otp, json=data)
+        server_return = requests.post(server_ip_login_otp, json=payload)
 
         if server_return.status_code == 404:
             flash('Wrong OTP', category='danger')
 
         else:
             session['access_token'] = server_return.json()['access_token']
+            session['user_id'] = payload['user_id']
+            session['data'] = payload
             flash('Successfully logged In', category='success')
-            session['logged_in'] = True
-            session['data'] = data
             return redirect(url_for('home_page'))
 
     return render_template('otp_login.html', form = form)
 
 
+
+@app.route('/logout')
+def logout_page():
+    session.pop('user_id', None)
+    return redirect(url_for('login_page'))
 
 
 @app.route('/register', methods=['GET', 'POST'])
