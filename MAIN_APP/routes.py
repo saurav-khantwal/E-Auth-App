@@ -107,6 +107,7 @@ def login_otp_page():
 
         else:
             session['access_token'] = server_return.json()['access_token']
+            print(session['access_token'])
             session['user_id'] = payload['user_id']
             session['data'] = payload
             flash('Successfully logged In', category='success')
