@@ -1,0 +1,31 @@
+{% extends 'base.html'%}
+
+{% block title%}
+    update Profile
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+    <h1 class="h3 mb-3 font-weight-normal">
+        Profile Update
+    </h1>
+    <br>         
+    <form method="POST" class="form-register" style="color:white" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+
+        {% set f = form.username.process_data(g.user.username) %}
+
+        {{ form.username.label() }}
+        {{ form.username(class="form-control mb-1", placeholder="Username") }}
+
+        {{ form.password1.label() }}
+        {{ form.password1(class="form-control mb-1", placeholder="Password") }}
+
+        {{ form.password2.label() }}
+        {{ form.password2(class="form-control", placeholder="Confirm Password") }}
+
+        <br>
+        {{ form.submit(class="btn btn-lg btn-center btn-success") }}
+    </form>
+</div>
+{% endblock %}

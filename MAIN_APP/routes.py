@@ -1,11 +1,8 @@
 from crypt import methods
-from email.mime import message
 from MAIN_APP import app
 from flask import render_template, url_for, flash, redirect, request, session, g
-from MAIN_APP.forms import Register_form, Login_form, Otp_Register_form, Otp_Login_form
-from datetime import datetime
+from MAIN_APP.forms import Register_form, Login_form, Otp_Register_form, Otp_Login_form, Profile_form
 import requests
-import base64
 
 
 
@@ -15,6 +12,7 @@ server_ip_user = "http://127.0.0.1:8000/users"
 server_ip_user_otp = "http://127.0.0.1:8000/users/otp"
 server_ip_login = "http://127.0.0.1:8000/login"
 server_ip_login_otp = "http://127.0.0.1:8000/login/otp"
+server_ip_profile_update = "http://127.0.0.1:8000/users/update"
 
 
 # before request
@@ -26,17 +24,17 @@ def before_request():
 
 
 # home page route
+@app.route('/')
 @app.route('/home')
 def home_page():
     if not g.user:
-        flash("You need to login before accessing this page", 'info')
+        flash("You need to login before accessing home page", 'info')
         return redirect(url_for('login_page'))
     return render_template('home.html')
 
 
 
 # Login page Route
-@app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
 
@@ -82,6 +80,9 @@ def login_page():
 @app.route('/login/otp', methods=['GET', 'POST'])
 def login_otp_page():
     form = Otp_Login_form()
+    '''
+        This route will take the otp input and validate it
+    '''
 
 
     # If the input data is in correct form
@@ -90,14 +91,6 @@ def login_otp_page():
         # Here we are using session dictionary to use the data from the login_page route
         payload = session['dict']
         payload['input_otp'] = form.otp.data
-        # data = {
-        #     "username": payload["username"],
-        #     "user_id": payload['user_id'],
-        #     "password": payload['password'],
-        #     "otp": payload['otp'],
-        #     "input_otp": form.otp.data
-            
-        # }
 
         # Sending request to the api to check the otp
         server_return = requests.post(server_ip_login_otp, json=payload)
@@ -119,12 +112,20 @@ def login_otp_page():
 
 @app.route('/logout')
 def logout_page():
+    '''
+        Logout page route
+    '''
     session.pop('user_id', None)
     return redirect(url_for('login_page'))
 
 
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register_page():
+    '''
+        This route will take register page form input and validate it
+    '''
     form = Register_form()
 
     # If the form data is in correct format
@@ -165,6 +166,9 @@ def register_page():
 
 @app.route('/register/otp', methods=['GET', 'POST'])
 def register_otp_page():
+    '''
+        This route will take otp input and validate it
+    '''
     form = Otp_Register_form()
 
     # Data from the session dictionary
@@ -192,7 +196,70 @@ def register_otp_page():
         else:
             print("This is working")
             flash(f'Registration Successfull', category='success')
-            return redirect(url_for('home_page'))
+            return redirect(url_for('login_page'))
 
     return render_template('otp_register.html', form = form)
+
+
+
+
+
+@app.route('/profile')
+def profile_page():
+    '''
+        This route will show the user profile
+    '''
+    if not g.user:
+        flash("You need to login to access this page", category='success')
+        return redirect(url_for('login_page'))
+    return render_template('profile.html')
+
+
+
+
+@app.route('/profile/update', methods=['GET', 'POST'])
+def profile_update_page():
+    '''
+        This route will allow user to update the profile data
+    '''
+    form = Profile_form()
+
+    if not g.user:
+        flash("You need to login before accessing this page", category='info')
+        return redirect(url_for('login_page'))
+    
+    if form.validate_on_submit():
+
+        data = {
+        "username": form.username.data,
+        "password": form.password1.data, 
+        "old_username": g.user['username']
+        }
+
+        # Sending the api request with the inputted data
+        server_return = requests.post(server_ip_profile_update, json=data)
+
+        # If there is some problem with user credentials
+        if server_return.status_code == 208:
+            if server_return.json()['detail'] == "username already exists":
+                flash(f'User with Username already exists', category='danger')
+        
+
+        # Else The data is added.
+        else:
+            g.user['username'] = form.username.data
+            g.user['password'] = form.password1.data
+            flash("Profile updated successfully", category='success')
+            return redirect(url_for('profile_page'))
+
+    # If there are errors in some validations.
+    if form.errors != {}:
+        for err_msg in form.errors.values():
+            flash(f'There was an error Updating your account: {err_msg}', category='danger')
+
+    return render_template('profile_update.html', form=form)
+
+
+
+
 
